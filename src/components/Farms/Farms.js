@@ -42,10 +42,50 @@ const Farms = ({ user }) => {
     }
   };
 
+  const handleGeoJSONUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const geoJson = JSON.parse(reader.result);
+          const coordinates = extractCoordinatesFromGeoJSON(geoJson);
+          if (coordinates) {
+            setNewFarm({
+              ...newFarm,
+              boundaries: JSON.stringify(coordinates),
+            });
+          } else {
+            alert("GeoJSON does not contain valid polygon coordinates.");
+          }
+        } catch (error) {
+          alert("Error reading GeoJSON file");
+          console.error("Error parsing GeoJSON:", error);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const extractCoordinatesFromGeoJSON = (geoJson) => {
+    if (geoJson.type === "FeatureCollection" && geoJson.features) {
+      const feature = geoJson.features.find(f => f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon");
+      if (feature && feature.geometry.coordinates) {
+        if (feature.geometry.type === "Polygon") {
+          return feature.geometry.coordinates[0];
+        }
+        else if (feature.geometry.type === "MultiPolygon") {
+          return feature.geometry.coordinates[0][0];
+        }
+      }
+    }
+    return null;
+  };
+
   const handleAddOrUpdateFarm = async () => {
     const { name, location, boundaries, description } = newFarm;
     if (!name || !location || !boundaries || !isValidBoundary(boundaries)) {
-      alert("Please fill all fields and ensure boundaries are a valid JSON array of coordinates.");
+      alert("Please fill all fields and ensure boundaries are a valid GeoJSON polygon.");
       return;
     }
 
@@ -77,7 +117,7 @@ const Farms = ({ user }) => {
     setNewFarm({
       name: farm.name,
       location: farm.location,
-      boundaries: farm.boundaries,
+      boundaries: JSON.stringify(farm.boundaries), 
       description: farm.description || "",
     });
     setEditingFarmId(farm.id);
@@ -86,11 +126,11 @@ const Farms = ({ user }) => {
 
   const handleDelete = async (id) => {
     try {
-        const confirmDelete = window.confirm("Are you sure you want to delete this farm?");
-        if (confirmDelete) {
-          await deleteFarm(id, accessToken);
-          setFarms(farms.filter((farm) => farm.id !== id));
-        }
+      const confirmDelete = window.confirm("Are you sure you want to delete this farm?");
+      if (confirmDelete) {
+        await deleteFarm(id, accessToken);
+        setFarms(farms.filter((farm) => farm.id !== id));
+      }
     } catch (error) {
       console.error("Error deleting farm:", error);
     }
@@ -117,7 +157,7 @@ const Farms = ({ user }) => {
             <div key={farm.id} className={styles.farmCard}>
               <h3>{farm.name}</h3>
               <p><strong>Location:</strong> {farm.location}</p>
-              <p><strong>Boundaries:</strong> {farm.boundaries}</p>
+              <p><strong>Boundaries:</strong> {JSON.stringify(farm.boundaries)}</p>
               {farm.description && <p><strong>Description:</strong> {farm.description}</p>}
               <div className={styles.actions}>
                 <button className={styles.editBtn} onClick={() => handleEdit(farm)}>Edit</button>
@@ -145,10 +185,9 @@ const Farms = ({ user }) => {
               onChange={(e) => setNewFarm({ ...newFarm, location: e.target.value })}
             />
             <input
-              type="text"
-              placeholder='Boundaries (e.g. [[28.045,-26.204],[28.05,-26.204]])'
-              value={newFarm.boundaries}
-              onChange={(e) => setNewFarm({ ...newFarm, boundaries: e.target.value })}
+              type="file"
+              accept=".geojson"
+              onChange={handleGeoJSONUpload}
             />
             <textarea
               placeholder="Description"

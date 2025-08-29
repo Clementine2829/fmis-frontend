@@ -18,7 +18,7 @@ const App = () => {
             <PrivateRoute element={<Dashboard />} />
           }
         />
-        {/* <Route path="*" element={<Navigate to="/Dashboard" />} /> */}
+        <Route path="/" element={<Navigate to="/Dashboard" />} />
       </Routes>
     </BrowserRouter>
   );

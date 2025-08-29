@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import "leaflet/dist/leaflet.css";
+import { MapContainer, TileLayer, ImageOverlay, Polygon } from "react-leaflet";
+import { LatLngBounds } from "leaflet";
 import { format } from "date-fns";
 import {
   LineChart,
@@ -13,7 +16,7 @@ import {
 } from "recharts";
 import { UserContext } from "../../utils/UserContext";
 import { getFarmNDVI, getNDVIHistory, getUserFarms } from "../../api/backend";
-import styles from "./NDVI.module.css"; // ← Import CSS module
+import styles from "./NDVI.module.css";
 
 export default function NDVI() {
   const { user } = useContext(UserContext);
@@ -46,24 +49,10 @@ export default function NDVI() {
     try {
       setLoading(true);
       const fetchedNDVI = await getFarmNDVI(accessToken, { farmId, date });
+      console.log("Fetched NDVI 2:", fetchedNDVI);
       setNdviResult(fetchedNDVI);
     } catch (error) {
       console.error("Failed to fetch NDVI:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchNDVITrend = async (farmId) => {
-    try {
-      setLoading(true);
-      const data = await getNDVIHistory(farmId, accessToken);
-      return data.map((entry) => ({
-        date: entry.request_date,
-        ndvi: entry.mean_ndvi,
-      }));
-    } catch (error) {
-      console.error("Failed to fetch NDVI trend:", error);
     } finally {
       setLoading(false);
     }
@@ -74,13 +63,6 @@ export default function NDVI() {
     setSelectedFarm(farmId);
     setNdviResult(null);
     setSelectedDate(null);
-
-    if (farmId) {
-      const trend = await fetchNDVITrend(farmId);
-      setNdviTrend(trend);
-    } else {
-      setNdviTrend([]);
-    }
   };
 
   const handleDateChange = async (date) => {
@@ -93,21 +75,23 @@ export default function NDVI() {
     const formattedDate = format(date, "yyyy-MM-dd");
     setLoading(true);
 
-    try {
-      const result = await fetchNDVIForDate(selectedFarm, formattedDate);
-      if (result.mean !== undefined) {
-        setNdviResult(result);
-        const trend = await fetchNDVITrend(selectedFarm);
-        setNdviTrend(trend);
-      } else {
-        setError("No NDVI data available for this date.");
-      }
-    } catch (err) {
-      setError("Failed to fetch NDVI data.");
-    } finally {
-      setLoading(false);
-    }
+    await fetchNDVIForDate(selectedFarm, formattedDate);
   };
+
+  const selectedFarmObj = farms.find((farm) => farm.id === selectedFarm);
+  const polygonCoords = selectedFarmObj
+    ? JSON.parse(selectedFarmObj.boundaries).map((coord) => [
+        coord[1],
+        coord[0],
+      ]) // Convert to [lat, lng]
+    : [];
+
+  const bounds = polygonCoords.length
+    ? new LatLngBounds(polygonCoords)
+    : [
+        [0, 0],
+        [0, 0],
+      ];
 
   return (
     <div className={styles.container}>
@@ -146,20 +130,48 @@ export default function NDVI() {
       {error && <p className={styles.error}>{error}</p>}
 
       {ndviResult && (
-        <div className={styles.ndviCard}>
-          <p className={styles.ndviValue}>
-            NDVI on {ndviResult.date || format(selectedDate, "yyyy-MM-dd")}:{" "}
-            <strong>{ndviResult.stats.mean.toFixed(2)}</strong>
-          </p>
-          <p>Standard Deviation: {ndviResult.stats.stddev.toFixed(2)}</p>
-          <p>Min: {ndviResult.stats.min.toFixed(2)}</p>
-          <p>Max: {ndviResult.stats.max.toFixed(2)}</p>
-          <img
-            src={ndviResult.image}
-            alt="NDVI Map"
-            className={styles.ndviImage}
-          />
-        </div>
+        <>
+          <div className={styles.ndviCard}>
+            <p className={styles.ndviValue}>
+              NDVI on {ndviResult.date || format(selectedDate, "yyyy-MM-dd")}:{" "}
+              <strong>{ndviResult.stats.mean.toFixed(2)}</strong>
+            </p>
+            <p>Standard Deviation: {ndviResult.stats.stddev.toFixed(2)}</p>
+            <p>Min: {ndviResult.stats.min.toFixed(2)}</p>
+            <p>Max: {ndviResult.stats.max.toFixed(2)}</p>
+          </div>
+
+          <div
+            style={{
+              marginTop: "20px",
+              height: "400px",
+              borderRadius: "10px",
+              overflow: "hidden",
+            }}
+          >
+            <MapContainer
+              bounds={bounds}
+              scrollWheelZoom={true}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+              <Polygon
+                positions={polygonCoords}
+                pathOptions={{ color: "green" }}
+              />
+              {ndviResult.image && (
+                <ImageOverlay
+                  url={ndviResult.image}
+                  bounds={bounds}
+                  opacity={0.6}
+                />
+              )}
+            </MapContainer>
+          </div>
+        </>
       )}
 
       {ndviTrend.length > 0 && (

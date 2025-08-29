@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import styles from "./Farms.module.css";
-import { createFarm, getUserFarms, deleteFarm, updateFarm } from "../../api/backend";
+import {
+  createFarm,
+  getUserFarms,
+  deleteFarm,
+  updateFarm,
+} from "../../api/backend";
 
 const Farms = ({ user }) => {
   const [farms, setFarms] = useState([]);
@@ -18,25 +23,28 @@ const Farms = ({ user }) => {
   const userId = user?.userId;
 
   useEffect(() => {
+    const fetchFarms = async () => {
+      try {
+        setLoading(true);
+        const fetchedFarms = await getUserFarms(accessToken);
+        setFarms(fetchedFarms);
+      } catch (error) {
+        console.error("Failed to fetch farms:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     fetchFarms();
-  }, []);
-
-  const fetchFarms = async () => {
-    try {
-      setLoading(true);
-      const fetchedFarms = await getUserFarms(accessToken);
-      setFarms(fetchedFarms);
-    } catch (error) {
-      console.error("Failed to fetch farms:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [accessToken]);
 
   const isValidBoundary = (boundaries) => {
     try {
       const coords = JSON.parse(boundaries);
-      return Array.isArray(coords) && coords.every(pair => Array.isArray(pair) && pair.length === 2);
+      return (
+        Array.isArray(coords) &&
+        coords.every((pair) => Array.isArray(pair) && pair.length === 2)
+      );
     } catch {
       return false;
     }
@@ -69,12 +77,14 @@ const Farms = ({ user }) => {
 
   const extractCoordinatesFromGeoJSON = (geoJson) => {
     if (geoJson.type === "FeatureCollection" && geoJson.features) {
-      const feature = geoJson.features.find(f => f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon");
+      const feature = geoJson.features.find(
+        (f) =>
+          f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon"
+      );
       if (feature && feature.geometry.coordinates) {
         if (feature.geometry.type === "Polygon") {
           return feature.geometry.coordinates[0];
-        }
-        else if (feature.geometry.type === "MultiPolygon") {
+        } else if (feature.geometry.type === "MultiPolygon") {
           return feature.geometry.coordinates[0][0];
         }
       }
@@ -83,9 +93,11 @@ const Farms = ({ user }) => {
   };
 
   const handleAddOrUpdateFarm = async () => {
-    const { name, location, boundaries, description } = newFarm;
+    const { name, location, boundaries } = newFarm;
     if (!name || !location || !boundaries || !isValidBoundary(boundaries)) {
-      alert("Please fill all fields and ensure boundaries are a valid GeoJSON polygon.");
+      alert(
+        "Please fill all fields and ensure boundaries are a valid GeoJSON polygon."
+      );
       return;
     }
 
@@ -93,8 +105,14 @@ const Farms = ({ user }) => {
       const farmData = { ...newFarm, userId };
 
       if (editingFarmId) {
-        const updatedFarm = await updateFarm(editingFarmId, accessToken, farmData);
-        setFarms(farms.map(farm => (farm.id === editingFarmId ? updatedFarm : farm)));
+        const updatedFarm = await updateFarm(
+          editingFarmId,
+          accessToken,
+          farmData
+        );
+        setFarms(
+          farms.map((farm) => (farm.id === editingFarmId ? updatedFarm : farm))
+        );
       } else {
         const createdFarm = await createFarm(accessToken, farmData);
         setFarms([...farms, createdFarm]);
@@ -117,7 +135,7 @@ const Farms = ({ user }) => {
     setNewFarm({
       name: farm.name,
       location: farm.location,
-      boundaries: JSON.stringify(farm.boundaries), 
+      boundaries: JSON.stringify(farm.boundaries),
       description: farm.description || "",
     });
     setEditingFarmId(farm.id);
@@ -126,7 +144,9 @@ const Farms = ({ user }) => {
 
   const handleDelete = async (id) => {
     try {
-      const confirmDelete = window.confirm("Are you sure you want to delete this farm?");
+      const confirmDelete = window.confirm(
+        "Are you sure you want to delete this farm?"
+      );
       if (confirmDelete) {
         await deleteFarm(id, accessToken);
         setFarms(farms.filter((farm) => farm.id !== id));
@@ -142,7 +162,12 @@ const Farms = ({ user }) => {
         onClick={() => {
           setShowForm(true);
           setEditingFarmId(null);
-          setNewFarm({ name: "", location: "", boundaries: "", description: "" });
+          setNewFarm({
+            name: "",
+            location: "",
+            boundaries: "",
+            description: "",
+          });
         }}
         className={styles.addBtn}
       >
@@ -156,12 +181,30 @@ const Farms = ({ user }) => {
           {farms.map((farm) => (
             <div key={farm.id} className={styles.farmCard}>
               <h3>{farm.name}</h3>
-              <p><strong>Location:</strong> {farm.location}</p>
-              <p><strong>Boundaries:</strong> {JSON.stringify(farm.boundaries)}</p>
-              {farm.description && <p><strong>Description:</strong> {farm.description}</p>}
+              <p>
+                <strong>Location:</strong> {farm.location}
+              </p>
+              <p>
+                <strong>Boundaries:</strong> {JSON.stringify(farm.boundaries)}
+              </p>
+              {farm.description && (
+                <p>
+                  <strong>Description:</strong> {farm.description}
+                </p>
+              )}
               <div className={styles.actions}>
-                <button className={styles.editBtn} onClick={() => handleEdit(farm)}>Edit</button>
-                <button className={styles.deleteBtn} onClick={() => handleDelete(farm.id)}>Delete</button>
+                <button
+                  className={styles.editBtn}
+                  onClick={() => handleEdit(farm)}
+                >
+                  Edit
+                </button>
+                <button
+                  className={styles.deleteBtn}
+                  onClick={() => handleDelete(farm.id)}
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))}
@@ -182,7 +225,9 @@ const Farms = ({ user }) => {
               type="text"
               placeholder="Location"
               value={newFarm.location}
-              onChange={(e) => setNewFarm({ ...newFarm, location: e.target.value })}
+              onChange={(e) =>
+                setNewFarm({ ...newFarm, location: e.target.value })
+              }
             />
             <input
               type="file"
@@ -192,13 +237,21 @@ const Farms = ({ user }) => {
             <textarea
               placeholder="Description"
               value={newFarm.description}
-              onChange={(e) => setNewFarm({ ...newFarm, description: e.target.value })}
+              onChange={(e) =>
+                setNewFarm({ ...newFarm, description: e.target.value })
+              }
             />
             <div className={styles.modalActions}>
-              <button onClick={handleAddOrUpdateFarm} className={styles.saveBtn}>
+              <button
+                onClick={handleAddOrUpdateFarm}
+                className={styles.saveBtn}
+              >
                 {editingFarmId ? "Update" : "Save"}
               </button>
-              <button onClick={() => setShowForm(false)} className={styles.cancelBtn}>
+              <button
+                onClick={() => setShowForm(false)}
+                className={styles.cancelBtn}
+              >
                 Cancel
               </button>
             </div>

@@ -30,9 +30,13 @@ const Dashboard = () => {
     profile: "My Profile",
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
     <div className={styles.dashboard}>
-      <Header user={user} />
+      <Header user={user} handleLogout={handleLogout} />
       <div className={styles.body}>
         <Sidebar onSelectView={setCurrentView} currentView={currentView} />
         <main className={styles.main}>

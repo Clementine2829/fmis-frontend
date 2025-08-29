@@ -5,17 +5,8 @@ import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, ImageOverlay, Polygon } from "react-leaflet";
 import { LatLngBounds } from "leaflet";
 import { format } from "date-fns";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import { UserContext } from "../../utils/UserContext";
-import { getFarmNDVI, getNDVIHistory, getUserFarms } from "../../api/backend";
+import { getFarmNDVI, getUserFarms } from "../../api/backend";
 import styles from "./NDVI.module.css";
 
 export default function NDVI() {
@@ -24,7 +15,6 @@ export default function NDVI() {
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [ndviResult, setNdviResult] = useState(null);
-  const [ndviTrend, setNdviTrend] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -172,21 +162,6 @@ export default function NDVI() {
             </MapContainer>
           </div>
         </>
-      )}
-
-      {ndviTrend.length > 0 && (
-        <div className={styles.chartContainer}>
-          <h3 className={styles.chartTitle}>NDVI Trend</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={ndviTrend}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis domain={[0, 1]} />
-              <Tooltip />
-              <Line type="monotone" dataKey="ndvi" stroke="#4CAF50" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
       )}
     </div>
   );

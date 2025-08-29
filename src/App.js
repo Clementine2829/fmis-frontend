@@ -1,10 +1,9 @@
 import React from "react";
-import { Routes, Route, Navigate, Router, BrowserRouter } from "react-router-dom";
+import { Routes, Route, Navigate, BrowserRouter } from "react-router-dom";
 import Login from "./components/Login/Login";
 import Signup from "./components/Signup/Signup";
 import Dashboard from "./components/Dashboard/Dashboard";
 import PrivateRoute from "./utils/PrivateRoute";
-import Navbar from "./components/Dashboard/Header";
 
 const App = () => {
   return (

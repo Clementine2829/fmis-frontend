@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import styles from "./Header.module.css";
 import { FaLeaf, FaUserCircle } from "react-icons/fa";
 
-const Header = ({ user }) => {
+const Header = ({ user, handleLogout }) => {
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
@@ -32,7 +32,7 @@ const Header = ({ user }) => {
         {showDropdown && (
           <div className={styles.dropdown}>
             <button>Profile</button>
-            <button>Logout</button>
+            <button onClick={handleLogout}>Logout</button>
           </div>
         )}
       </div>

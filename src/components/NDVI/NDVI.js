@@ -123,12 +123,27 @@ export default function NDVI() {
         <>
           <div className={styles.ndviCard}>
             <p className={styles.ndviValue}>
-              NDVI on {ndviResult.date || format(selectedDate, "yyyy-MM-dd")}:{" "}
-              <strong>{ndviResult.stats.mean.toFixed(2)}</strong>
+              NDVI on {ndviResult.date || format(selectedDate, "yyyy-MM-dd")}
             </p>
-            <p>Standard Deviation: {ndviResult.stats.stddev.toFixed(2)}</p>
-            <p>Min: {ndviResult.stats.min.toFixed(2)}</p>
-            <p>Max: {ndviResult.stats.max.toFixed(2)}</p>
+
+            <table className={styles.ndviTable}>
+              <thead>
+                <tr>
+                  <th>Mean</th>
+                  <th>Standard Deviation</th>
+                  <th>Min</th>
+                  <th>Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{ndviResult.stats.mean.toFixed(2)}</td>
+                  <td>{ndviResult.stats.stddev.toFixed(2)}</td>
+                  <td>{ndviResult.stats.min.toFixed(2)}</td>
+                  <td>{ndviResult.stats.max.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           <div
